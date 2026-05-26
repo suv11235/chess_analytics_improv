@@ -2,16 +2,84 @@
 
 Local copies of **Stockfish** (chess, NNUE) and **Leela Zero** (Go, AlphaZero-style CNN) for running inference and interpretability experiments.
 
+Model weights are **not** stored in git (too large). Download them once using the setup steps below.
+
+## Setup
+
+### 1. Clone and build engines
+
+```bash
+git clone https://github.com/suv11235/chess_analytics_improv.git
+cd chess_analytics_improv
+```
+
+**Stockfish** (macOS Apple Silicon example):
+
+```bash
+cd engines/stockfish/src
+make -j$(sysctl -n hw.ncpu) build ARCH=apple-silicon
+```
+
+On Linux, use an appropriate `ARCH=` for your CPU (see `make help` in that directory).
+
+**Leela Zero** (macOS example):
+
+```bash
+brew install boost cmake zlib openblas
+cd engines/leela-zero/src
+make clean
+make CC=clang CXX=clang++ \
+  CXXFLAGS="-I$(brew --prefix boost)/include -I./Eigen -I. -std=c++17 -O3 -DNDEBUG" \
+  LDFLAGS="-L$(brew --prefix boost)/lib" \
+  leelaz
+clang++ -L$(brew --prefix boost)/lib -o leelaz *.o -framework Accelerate -framework OpenCL \
+  -lboost_filesystem -lboost_program_options -lpthread -lz
+```
+
+A small C++17 patch in `engines/leela-zero/src/UCTNode.cpp` is already applied for current toolchains.
+
+### 2. Download Stockfish NNUE weights
+
+From `engines/stockfish/src`, fetch the default net for this tree (name is in `evaluate.h`, currently `nn-83a0d6daf7e5.nnue`):
+
+```bash
+cd engines/stockfish/src
+make net
+```
+
+That downloads from `https://tests.stockfishchess.org/api/nn/<filename>`. You can also export the embedded net after building: run `./stockfish`, then `export_net my_export.nnue`.
+
+### 3. Download Leela Zero weights
+
+The public LZ server (`zero.sjeng.org`) is offline. Use these archive mirrors:
+
+```bash
+mkdir -p engines/leela-zero/weights
+
+# Strongest net (40×256, hash 0e9ea880) — gzip text weights, ~89 MB
+curl -fL -o engines/leela-zero/weights/best-network.gz \
+  "https://web.archive.org/web/20210215100000/https://zero.sjeng.org/best-network"
+
+# Optional: weaker human-supervised baseline (~8 MB zip → weights.txt)
+curl -fL -o engines/leela-zero/weights/best_v1.txt.zip \
+  "https://web.archive.org/web/20200101000000/https://sjeng.org/zero/best_v1.txt.zip"
+unzip -o engines/leela-zero/weights/best_v1.txt.zip -d engines/leela-zero/weights
+```
+
+`leelaz` accepts `.gz` directly (`-w ../weights/best-network.gz`).
+
 ## Layout
 
 ```
 engines/
-  stockfish/          # official-stockfish/Stockfish source + built binary
-  leela-zero/         # leela-zero/leela-zero source + leelaz binary
-    src/leelaz        # inference binary (built for macOS ARM)
-    weights/
-      best-network.gz # strongest LZ net (40×256, hash 0e9ea880)
-      weights.txt     # human-supervised baseline (weaker)
+  stockfish/          # official-stockfish/Stockfish source
+    src/stockfish     # binary (after build)
+    src/nn-*.nnue     # NNUE weights (after make net)
+  leela-zero/         # leela-zero source
+    src/leelaz        # binary (after build)
+    weights/          # LZ weights (after download)
+      best-network.gz
+      weights.txt     # optional human net
 ```
 
 ## Stockfish
@@ -20,7 +88,7 @@ engines/
 |------|------|
 | Source | `engines/stockfish/` |
 | Binary | `engines/stockfish/src/stockfish` |
-| Default NNUE | `engines/stockfish/src/nn-83a0d6daf7e5.nnue` (~86 MB) |
+| Default NNUE | `engines/stockfish/src/nn-83a0d6daf7e5.nnue` |
 
 **Run (UCI):**
 
@@ -29,15 +97,7 @@ cd engines/stockfish/src
 ./stockfish
 ```
 
-**Export embedded net for custom analysis:**
-
-```
-export_net my_export.nnue
-```
-
-**Re-download default net:** `make net` from `engines/stockfish/src`.
-
-Network architecture lives under `engines/stockfish/src/nnue/`. For training / PyTorch tooling see [nodchip/nnue-pytorch](https://github.com/glinscott/nnue-pytorch).
+Network architecture: `engines/stockfish/src/nnue/`. Training tooling: [nodchip/nnue-pytorch](https://github.com/glinscott/nnue-pytorch).
 
 ## Leela Zero
 
@@ -46,9 +106,7 @@ Network architecture lives under `engines/stockfish/src/nnue/`. For training / P
 | Source | `engines/leela-zero/` |
 | Binary | `engines/leela-zero/src/leelaz` |
 | Best weights | `engines/leela-zero/weights/best-network.gz` |
-| Human weights | `engines/leela-zero/weights/weights.txt` |
-
-The public weight server (`zero.sjeng.org`) is offline; `best-network.gz` was fetched from the [Internet Archive](https://web.archive.org/web/20210215100000/http://zero.sjeng.org/best-network) (final promoted net, Feb 2021).
+| Human weights | `engines/leela-zero/weights/weights.txt` (optional) |
 
 **Run with weights:**
 
@@ -61,23 +119,6 @@ cd engines/leela-zero/src
 
 - Caffe: `engines/leela-zero/training/caffe/zero.prototxt` (40 blocks)
 - TensorFlow: `engines/leela-zero/training/tf/tfprocess.py`
-
-**Rebuild leelaz** (macOS, Homebrew boost/cmake):
-
-```bash
-brew install boost cmake zlib openblas
-cd engines/leela-zero/src
-make clean
-make CC=clang CXX=clang++ \
-  CXXFLAGS="-I$(brew --prefix boost)/include -I./Eigen -I. -std=c++17 -O3 -DNDEBUG" \
-  LDFLAGS="-L$(brew --prefix boost)/lib" \
-  leelaz
-# Then link without libboost_system (removed in Boost 1.89+):
-clang++ -L$(brew --prefix boost)/lib -o leelaz *.o -framework Accelerate -framework OpenCL \
-  -lboost_filesystem -lboost_program_options -lpthread -lz
-```
-
-A one-line patch to `src/UCTNode.cpp` (remove deprecated `std::binary_function`) is included for C++17 builds.
 
 ## Notes for interpretability
 

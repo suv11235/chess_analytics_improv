@@ -6,8 +6,12 @@ engines/leela-zero/build/
 engines/stockfish/src/.depend
 engines/stockfish/src/temp_builds/
 
-# Include default NNUE for interpretability (overrides engines/stockfish/.gitignore)
-!engines/stockfish/src/*.nnue
+# Model weights (not in repo — download per README setup)
+**/*.nnue
+engines/leela-zero/weights/*.gz
+engines/leela-zero/weights/*.zip
+engines/leela-zero/weights/*.txt
+/weights/
 
 # Binaries (rebuild from source; see README)
 engines/stockfish/src/stockfish
