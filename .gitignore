@@ -1,0 +1,25 @@
+# Build artifacts
+**/*.o
+**/*.d
+**/*.s
+engines/leela-zero/build/
+engines/stockfish/src/.depend
+engines/stockfish/src/temp_builds/
+
+# Include default NNUE for interpretability (overrides engines/stockfish/.gitignore)
+!engines/stockfish/src/*.nnue
+
+# Binaries (rebuild from source; see README)
+engines/stockfish/src/stockfish
+engines/leela-zero/src/leelaz
+engines/leela-zero/src/autogtp
+
+# IDE / OS
+.DS_Store
+.vscode/
+__pycache__/
+
+# Training scratch
+engines/leela-zero/training/tf/leelalogs/
+engines/leela-zero/training/tf/checkpoint/
+engines/leela-zero/training/tf/venv/

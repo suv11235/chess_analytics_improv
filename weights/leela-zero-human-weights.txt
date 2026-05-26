@@ -1,0 +1,1 @@
+../engines/leela-zero/weights/weights.txt
