@@ -3,15 +3,16 @@ Evaluate every position in last_game.pgn with both Stockfish and lc0.
 SF: depth 12 (fast).  lc0: 100ms per position.
 """
 
-import sys
 import chess
 import chess.engine
 import chess.pgn
+from pathlib import Path
 
-STOCKFISH = "/Users/suvajitmajumder/chess_projects/engines/stockfish/src/stockfish"
-LC0       = "/Users/suvajitmajumder/chess_projects/engines/lc0/build/release/lc0"
-LC0_NET   = "/Users/suvajitmajumder/chess_projects/engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
-PGN_PATH  = "/Users/suvajitmajumder/chess_projects/scripts/last_game.pgn"
+ROOT      = Path(__file__).resolve().parent.parent
+STOCKFISH = ROOT / "engines/stockfish/src/stockfish"
+LC0       = ROOT / "engines/lc0/build/release/lc0"
+LC0_NET   = ROOT / "engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
+PGN_PATH  = Path(__file__).resolve().parent / "last_game.pgn"
 
 SF_DEPTH   = 12
 LC0_TIME   = 0.1   # seconds per position
@@ -117,7 +118,7 @@ def run():
     print(f"{'Mean |SF−lc0| disagreement':30} {sum(diffs)/len(diffs):>12.2f}")
 
     # Save
-    out = "/Users/suvajitmajumder/chess_projects/scripts/game_evals.txt"
+    out = Path(__file__).resolve().parent / "game_evals.txt"
     with open(out, "w") as f:
         f.write(hdr + "\n")
         for i, (label, san, sf_cp, lc0_cp) in enumerate(

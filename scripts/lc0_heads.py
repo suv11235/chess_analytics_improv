@@ -19,10 +19,12 @@ import subprocess
 import threading
 import chess
 import chess.pgn
+from pathlib import Path
 
-LC0     = "/Users/suvajitmajumder/chess_projects/engines/lc0/build/release/lc0"
-LC0_NET = "/Users/suvajitmajumder/chess_projects/engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
-PGN_PATH = "/Users/suvajitmajumder/chess_projects/scripts/last_game.pgn"
+ROOT     = Path(__file__).resolve().parent.parent
+LC0      = ROOT / "engines/lc0/build/release/lc0"
+LC0_NET  = ROOT / "engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
+PGN_PATH = Path(__file__).resolve().parent / "last_game.pgn"
 
 TOP_N_POLICY = 10  # how many top moves to show from the policy head
 NODES = 10         # nodes per position – enough to populate full policy table

@@ -3,15 +3,16 @@ Arbiter script: Stockfish (White) vs lc0 (Black)
 Drives both engines over UCI via python-chess and prints the game.
 """
 
-import sys
 import chess
 import chess.engine
 import chess.pgn
 import datetime
+from pathlib import Path
 
-STOCKFISH = "/Users/suvajitmajumder/chess_projects/engines/stockfish/src/stockfish"
-LC0       = "/Users/suvajitmajumder/chess_projects/engines/lc0/build/release/lc0"
-LC0_NET   = "/Users/suvajitmajumder/chess_projects/engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
+ROOT      = Path(__file__).resolve().parent.parent
+STOCKFISH = ROOT / "engines/stockfish/src/stockfish"
+LC0       = ROOT / "engines/lc0/build/release/lc0"
+LC0_NET   = ROOT / "engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz"
 
 # Time per move (seconds)
 MOVETIME  = 0.5
@@ -99,7 +100,7 @@ def run():
     print(pgn_str)
 
     # Save PGN
-    pgn_path = "/Users/suvajitmajumder/chess_projects/scripts/last_game.pgn"
+    pgn_path = Path(__file__).resolve().parent / "last_game.pgn"
     with open(pgn_path, "w") as f:
         f.write(pgn_str + "\n")
     print(f"\n[PGN saved to {pgn_path}]")
