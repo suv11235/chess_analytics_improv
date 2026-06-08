@@ -2,28 +2,21 @@
 **/*.o
 **/*.d
 **/*.s
-engines/leela-zero/build/
+engines/lc0/build/
 engines/stockfish/src/.depend
 engines/stockfish/src/temp_builds/
 
 # Model weights (not in repo — download per README setup)
 **/*.nnue
-engines/leela-zero/weights/*.gz
-engines/leela-zero/weights/*.zip
-engines/leela-zero/weights/*.txt
+engines/lc0/weights/*.pb.gz
+engines/lc0/weights/*.pb
 /weights/
 
 # Binaries (rebuild from source; see README)
 engines/stockfish/src/stockfish
-engines/leela-zero/src/leelaz
-engines/leela-zero/src/autogtp
+engines/lc0/build/release/lc0
 
 # IDE / OS
 .DS_Store
 .vscode/
 __pycache__/
-
-# Training scratch
-engines/leela-zero/training/tf/leelalogs/
-engines/leela-zero/training/tf/checkpoint/
-engines/leela-zero/training/tf/venv/

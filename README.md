@@ -1,127 +1,121 @@
 # Chess engine interpretability setup
 
-Local copies of **Stockfish** (chess, NNUE) and **Leela Zero** (Go, AlphaZero-style CNN) for running inference and interpretability experiments.
+Local copies of **Stockfish** (classical + NNUE chess engine) and **Leela Chess Zero / lc0** (AlphaZero-style CNN chess engine) for running inference and interpretability experiments.
 
-Model weights are **not** stored in git (too large). Download them once using the setup steps below.
+Model weights are **not** stored in git. Download them once using the setup steps below.
+
+## Layout
+
+```
+engines/
+  stockfish/            # official-stockfish/Stockfish source
+    src/stockfish       # binary (after build)
+    src/nn-*.nnue       # NNUE weights (after make net)
+  lc0/                  # LeelaChessZero/lc0 source
+    build/release/lc0   # binary (after build)
+    weights/            # network weights (after download)
+      t1-256x10-distilled-swa-2432500.pb.gz
+```
 
 ## Setup
 
-### 1. Clone and build engines
+### 1. Clone
 
 ```bash
 git clone https://github.com/suv11235/chess_analytics_improv.git
 cd chess_analytics_improv
 ```
 
-**Stockfish** (macOS Apple Silicon example):
+### 2. Build Stockfish (macOS Apple Silicon)
 
 ```bash
 cd engines/stockfish/src
 make -j$(sysctl -n hw.ncpu) build ARCH=apple-silicon
 ```
 
-On Linux, use an appropriate `ARCH=` for your CPU (see `make help` in that directory).
+For Linux, replace `ARCH=apple-silicon` with the output of `make help | grep ARCH`.
 
-**Leela Zero** (macOS example):
-
-```bash
-brew install boost cmake zlib openblas
-cd engines/leela-zero/src
-make clean
-make CC=clang CXX=clang++ \
-  CXXFLAGS="-I$(brew --prefix boost)/include -I./Eigen -I. -std=c++17 -O3 -DNDEBUG" \
-  LDFLAGS="-L$(brew --prefix boost)/lib" \
-  leelaz
-clang++ -L$(brew --prefix boost)/lib -o leelaz *.o -framework Accelerate -framework OpenCL \
-  -lboost_filesystem -lboost_program_options -lpthread -lz
-```
-
-A small C++17 patch in `engines/leela-zero/src/UCTNode.cpp` is already applied for current toolchains.
-
-### 2. Download Stockfish NNUE weights
-
-From `engines/stockfish/src`, fetch the default net for this tree (name is in `evaluate.h`, currently `nn-83a0d6daf7e5.nnue`):
+### 3. Download Stockfish NNUE weights
 
 ```bash
 cd engines/stockfish/src
-make net
+make net          # downloads nn-83a0d6daf7e5.nnue from tests.stockfishchess.org
 ```
 
-That downloads from `https://tests.stockfishchess.org/api/nn/<filename>`. You can also export the embedded net after building: run `./stockfish`, then `export_net my_export.nnue`.
+The NNUE is also embedded in the binary — run `export_net out.nnue` inside the UCI shell to extract it.
 
-### 3. Download Leela Zero weights
-
-The public LZ server (`zero.sjeng.org`) is offline. Use these archive mirrors:
+### 4. Build lc0 (macOS)
 
 ```bash
-mkdir -p engines/leela-zero/weights
-
-# Strongest net (40×256, hash 0e9ea880) — gzip text weights, ~89 MB
-curl -fL -o engines/leela-zero/weights/best-network.gz \
-  "https://web.archive.org/web/20210215100000/https://zero.sjeng.org/best-network"
-
-# Optional: weaker human-supervised baseline (~8 MB zip → weights.txt)
-curl -fL -o engines/leela-zero/weights/best_v1.txt.zip \
-  "https://web.archive.org/web/20200101000000/https://sjeng.org/zero/best_v1.txt.zip"
-unzip -o engines/leela-zero/weights/best_v1.txt.zip -d engines/leela-zero/weights
+brew install meson ninja
+cd engines/lc0
+./build.sh        # produces build/release/lc0
 ```
 
-`leelaz` accepts `.gz` directly (`-w ../weights/best-network.gz`).
+### 5. Download lc0 network weights
 
-## Layout
-
-```
-engines/
-  stockfish/          # official-stockfish/Stockfish source
-    src/stockfish     # binary (after build)
-    src/nn-*.nnue     # NNUE weights (after make net)
-  leela-zero/         # leela-zero source
-    src/leelaz        # binary (after build)
-    weights/          # LZ weights (after download)
-      best-network.gz
-      weights.txt     # optional human net
+```bash
+mkdir -p engines/lc0/weights
+# Small/fast net — 256 filters × 10 blocks, ~35 MB, good for CPU
+curl -fL -o engines/lc0/weights/t1-256x10-distilled-swa-2432500.pb.gz \
+  "https://storage.lczero.org/files/networks-contrib/t1-256x10-distilled-swa-2432500.pb.gz"
 ```
 
-## Stockfish
+Browse [lczero.org best nets](https://lczero.org/dev/wiki/best-nets-for-lc0/) for larger networks if you have a GPU.
 
-| Item | Path |
-|------|------|
-| Source | `engines/stockfish/` |
-| Binary | `engines/stockfish/src/stockfish` |
-| Default NNUE | `engines/stockfish/src/nn-83a0d6daf7e5.nnue` |
+---
 
-**Run (UCI):**
+## Running the engines
+
+### Stockfish (UCI)
 
 ```bash
 cd engines/stockfish/src
 ./stockfish
+# then:
+# uci
+# position startpos moves e2e4 e7e5
+# go depth 15
 ```
 
-Network architecture: `engines/stockfish/src/nnue/`. Training tooling: [nodchip/nnue-pytorch](https://github.com/glinscott/nnue-pytorch).
-
-## Leela Zero
-
-| Item | Path |
-|------|------|
-| Source | `engines/leela-zero/` |
-| Binary | `engines/leela-zero/src/leelaz` |
-| Best weights | `engines/leela-zero/weights/best-network.gz` |
-| Human weights | `engines/leela-zero/weights/weights.txt` (optional) |
-
-**Run with weights:**
+### lc0 (UCI)
 
 ```bash
-cd engines/leela-zero/src
-./leelaz -w ../weights/best-network.gz --gtp
+cd engines/lc0/build/release
+./lc0 --weights=../../weights/t1-256x10-distilled-swa-2432500.pb.gz
+# then identical UCI commands as Stockfish
 ```
 
-**Network definitions (for reimplementation / probes):**
+### Stockfish vs lc0 game (command-line)
 
-- Caffe: `engines/leela-zero/training/caffe/zero.prototxt` (40 blocks)
-- TensorFlow: `engines/leela-zero/training/tf/tfprocess.py`
+Both engines speak UCI. Use any UCI arbiter (e.g. `cutechess-cli`) or the script at `scripts/play_game.sh` (see below).
+
+---
+
+## Accessing model outputs for a given position
+
+### Stockfish — NNUE eval trace
+
+```
+position fen <FEN>
+eval
+```
+
+Returns: NNUE bucket breakdown (PSQT / Layers), final centipawn evaluation.
+Per-move during search: `setoption name MultiPV value 5` + `go depth 20` → `info` lines with `score cp`.
+
+### lc0 — policy + value
+
+lc0 returns **both** on every node evaluation:
+
+- **Value head** (win probability): `score cp` in search output, or `score wdl` with `setoption name VerboseMoveStats value true`
+- **Policy head** (per-move prior): enable `setoption name VerboseMoveStats value true` — each `info` line then includes `P:` (prior probability from the net)
+- **Raw net outputs** without search: set very low nodes `go nodes 1` — the single net evaluation is surfaced directly
+
+---
 
 ## Notes for interpretability
 
-- **Stockfish**: NNUE is a sparse feature → MLP eval; good for feature attribution and layer-wise probes on the eval net.
-- **Leela Zero**: full-board residual CNN + policy/value heads; weights are plain text (one coefficient per line) — easy to parse without the engine.
-- Leela Zero is **Go**, not chess. For chess + similar architecture use [Leela Chess Zero (lc0)](https://github.com/LeelaChessZero/lc0) separately if needed.
+- **Stockfish NNUE**: sparse HalfKAv2 features → 2 small MLPs → scalar eval. Code in `engines/stockfish/src/nnue/`. PyTorch training tooling: [glinscott/nnue-pytorch](https://github.com/glinscott/nnue-pytorch).
+- **lc0**: residual CNN with policy + value heads; weights in protobuf format (`.pb.gz`). Architecture and layer access: `engines/lc0/src/neural/`. Python loading: [lczero-training](https://github.com/LeelaChessZero/lczero-training).
+- Both engines speak **UCI** — easy to drive programmatically from Python via `subprocess` or the [`chess`](https://python-chess.readthedocs.io/) + [`chess.engine`](https://python-chess.readthedocs.io/en/latest/engine.html) library.
