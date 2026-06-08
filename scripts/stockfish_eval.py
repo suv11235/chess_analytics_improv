@@ -49,7 +49,32 @@ class Evaluation:
         if self.wdl is not None:
             w, d, l = self.wdl
             parts.append(f"wdl {w}/{d}/{l}")
+        parts.append(f"meaning: {self.meaning()}")
         return ", ".join(parts)
+
+    def meaning(self) -> str:
+        """Plain-English summary from the side-to-move perspective."""
+        if self.mate_in is not None:
+            if self.mate_in == 0:
+                return "side to move is checkmated"
+            if self.mate_in > 0:
+                return f"side to move is winning (forced mate in {self.mate_in})"
+            return f"side to move is losing (gets mated in {abs(self.mate_in)})"
+
+        if self.score_cp is None:
+            return "unknown"
+
+        pawns = abs(self.score_cp) / 100
+        if abs(self.score_cp) < 50:
+            return "roughly equal"
+        if abs(self.score_cp) < 150:
+            verdict = "slightly better" if self.score_cp > 0 else "slightly worse"
+            return f"side to move is {verdict} (~{pawns:.1f} pawns)"
+        if abs(self.score_cp) < 400:
+            verdict = "clearly better" if self.score_cp > 0 else "clearly worse"
+            return f"side to move is {verdict} (~{pawns:.1f} pawns)"
+        verdict = "winning" if self.score_cp > 0 else "losing"
+        return f"side to move is {verdict} (~{pawns:.1f} pawns)"
 
 
 class StockfishEvaluator:
@@ -221,6 +246,42 @@ def run_tests(stockfish_path: Path) -> None:
             "depth": 10,
             "expect_mate": 0,
         },
+        {
+            "name": "white missing queen",
+            "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1",
+            "depth": 10,
+            "max_cp": -700,
+        },
+        {
+            "name": "white missing bishop",
+            "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq - 0 1",
+            "depth": 10,
+            "max_cp": -400,
+        },
+        {
+            "name": "white missing knight",
+            "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKB1R w KQkq - 0 1",
+            "depth": 10,
+            "max_cp": -350,
+        },
+        {
+            "name": "black missing queen",
+            "fen": "rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "depth": 10,
+            "min_cp": 700,
+        },
+        {
+            "name": "black missing bishop",
+            "fen": "rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "depth": 10,
+            "min_cp": 500,
+        },
+        {
+            "name": "black missing knight",
+            "fen": "rnbqkb1r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "depth": 10,
+            "min_cp": 450,
+        },
     ]
 
     with StockfishEvaluator(stockfish_path=stockfish_path) as engine:
@@ -242,6 +303,13 @@ def run_tests(stockfish_path: Path) -> None:
                 if result.score_cp is None or result.score_cp > test["max_cp"]:
                     raise AssertionError(
                         f"{test['name']}: expected score <= {test['max_cp']} cp, "
+                        f"got {result.score_cp}"
+                    )
+
+            if "min_cp" in test:
+                if result.score_cp is None or result.score_cp < test["min_cp"]:
+                    raise AssertionError(
+                        f"{test['name']}: expected score >= {test['min_cp']} cp, "
                         f"got {result.score_cp}"
                     )
 
@@ -292,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             stockfish_path=args.stockfish,
             show_wdl=args.wdl,
         )
+        print(result.meaning())
         print(result.summary())
         return 0
     except (FileNotFoundError, RuntimeError, AssertionError) as exc:
