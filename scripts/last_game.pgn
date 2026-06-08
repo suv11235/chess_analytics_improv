@@ -1,0 +1,16 @@
+[Event "Stockfish vs lc0"]
+[Site "?"]
+[Date "2026-06-07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Lc0"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4 6. d4 b5 7. Bb3 d5 8. dxe5
+Be6 9. Qe2 Be7 10. Rd1 O-O 11. c4 bxc4 12. Bxc4 Bc5 13. Be3 Bxe3 14. Qxe3 Qb8
+15. Bb3 Na5 16. Nbd2 Nxb3 17. Nxb3 c5 18. Nxc5 Nxc5 19. Qxc5 Qxb2 20. Nd4 Rfc8
+21. Qd6 Rd8 22. Qc7 Rdc8 23. Qd6 Rd8 24. Qe7 Re8 25. Qg5 Rac8 26. h3 h6 27. Qe3
+Rc3 28. Qe1 Rc4 29. Rd2 Qc3 30. Rad1 Bd7 31. f4 Ba4 32. Rd3 Qxe1+ 33. Rxe1 Bc2
+34. Nxc2 Rxc2 35. Rxd5 Rxa2 36. Re4 Rc8 37. f5 Rcc2 38. Rd8+ Kh7 39. Rg4 Rc7
+40. Re8 Re2 41. Kh2 a5 42. Rg3 a4 43. f6 gxf6 44. Reg8 h5 45. R3g7+ Kh6 46.
+exf6 Rc8 47. Rxc8 Rxg2+ 48. Kxg2 a3 49. Rh8# 1-0
